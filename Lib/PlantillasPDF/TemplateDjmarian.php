@@ -5,35 +5,17 @@ use FacturaScripts\Core\Model\Base\BusinessDocument;
 use FacturaScripts\Dinamic\Model\Cliente;
 use FacturaScripts\Dinamic\Model\Contacto;
 use FacturaScripts\Dinamic\Model\Proveedor;
+use FacturaScripts\Core\Tools;
+use FacturaScripts\Core\DataSrc\Impuestos;
 
 /**
  * Description of TemplateDjmarian
  *
- * @author Ferran Llop Alonso <ferranllop@gmail.com>
+ * @author Ferran Llop Alonso <ferran@misterbit.es>
  */
 
 class TemplateDjmarian extends \FacturaScripts\Plugins\PlantillasPDF\Lib\PlantillasPDF\Template4
 {
-
-    /**
-     * 
-     * @param string $txt
-     *
-     * @return string
-     */
-    protected function getInvoiceLineFieldTitle(string $txt): string
-    {
-        return parent::getInvoiceLineFieldTitle($this->fixTotalLinesHeading($txt));
-    }
-
-    /**
-     * Replace the heading from pvptotal that prints 'Net' heading,
-     * which is incorrect, to amount that prints 'Amount'
-     */
-    private function fixTotalLinesHeading(string $txt): string
-    {
-        return $txt == 'pvptotal' ? 'amount' : $txt;
-    }
 
     /**
      * 
@@ -54,29 +36,31 @@ class TemplateDjmarian extends \FacturaScripts\Plugins\PlantillasPDF\Lib\Plantil
      */
     private function fixInvoiceTaxesColumns($model, $lines, $class): string
     {
-        $rows = $this->getTaxesRows($model, $lines);
+        if ($this->format->hide_vat_breakdown) {
+            return '';
+        }
+
+        $taxes = $this->getTaxesRows($model, $lines);
         if (empty($model->totaliva)) {
             return '';
         }
 
-        $coins = $this->toolBox()->coins();
-        $i18n = $this->toolBox()->i18n();
-        $numbers = $this->toolBox()->numbers();
+        $i18n = Tools::lang();
 
         $trs = '';
-        foreach ($rows as $row) {
+        foreach ($taxes['iva'] as $row) {
             $trs .= '<tr>'
-                . '<td align="center">' . $coins->format($row['taxbase']) . '</td>'
-                . '<td align="center">' . $row['tax'] . '</td>'
-                . '<td align="center">' . $coins->format($row['taxamount']) . '</td>';
+                . '<td class="nowrap" align="center">' . Tools::money($row['neto'], $model->coddivisa) . '</td>'
+                . '<td class="nowrap" align="center">' . Impuestos::get($row['codimpuesto'])->descripcion . '</td>'
+                . '<td class="nowrap" align="center">' . Tools::money($row['totaliva'], $model->coddivisa) . '</td>';
 
             if (empty($model->totalrecargo)) {
                 $trs .= '</tr>';
                 continue;
             }
 
-            $trs .= '<td align="center">' . (empty($row['taxsurchargep']) ? '-' : $numbers->format($row['taxsurchargep']) . '%') . '</td>'
-                . '<td align="right">' . (empty($row['taxsurcharge']) ? '-' : $coins->format($row['taxsurcharge'])) . '</td>'
+            $trs .= '<td class="nowrap" align="center">' . (empty($row['recargo']) ? '-' : Tools::number($row['recargo']) . '%') . '</td>'
+                . '<td class="nowrap" align="right">' . (empty($row['totalrecargo']) ? '-' : Tools::money($row['totalrecargo'])) . '</td>'
                 . '</tr>';
         }
 
@@ -85,8 +69,8 @@ class TemplateDjmarian extends \FacturaScripts\Plugins\PlantillasPDF\Lib\Plantil
                 . '<thead>'
                 . '<tr>'
                 . '<th align="center">' . $i18n->trans('tax-base') . '</th>'
+                . '<th align="center">' . $i18n->trans('percentage') . '</th>'
                 . '<th align="center">' . $i18n->trans('tax') . '</th>'
-                . '<th align="center">' . $i18n->trans('amount') . '</th>'
                 . '</tr>'
                 . '</thead>'
                 . $trs
@@ -96,13 +80,12 @@ class TemplateDjmarian extends \FacturaScripts\Plugins\PlantillasPDF\Lib\Plantil
         return '<table class="' . $class . '">'
             . '<tr>'
             . '<th align="center">' . $i18n->trans('tax-base') . '</th>'
+            . '<th align="center">' . $i18n->trans('percentage') . '</th>'
             . '<th align="center">' . $i18n->trans('tax') . '</th>'
-            . '<th align="center">' . $i18n->trans('amount') . '</th>'
             . '<th align="center">' . $i18n->trans('re') . '</th>'
             . '<th align="right">' . $i18n->trans('amount') . '</th>'
             . '</tr>'
             . $trs
             . '</table>';
     }
-
 }
