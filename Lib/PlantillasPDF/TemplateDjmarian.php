@@ -16,6 +16,17 @@ use FacturaScripts\Core\DataSrc\Impuestos;
 
 class TemplateDjmarian extends \FacturaScripts\Plugins\PlantillasPDF\Lib\PlantillasPDF\Template4
 {
+    /**
+     * Hide invoice lines when writting hide_lines in Columns Line in Printing Format Page
+     *
+     * @param BusinessDocument $model
+     **/
+    public function addInvoiceLines($model)
+    {
+        if (! $this->getInvoiceLineFields()['hide_lines']) {
+            return parent::addInvoiceLines($model);
+        }
+    }
 
     /**
      * 
