@@ -23,9 +23,11 @@ class TemplateDjmarian extends \FacturaScripts\Plugins\PlantillasPDF\Lib\Plantil
      **/
     public function addInvoiceLines($model)
     {
-        if (! $this->getInvoiceLineFields()['hide_lines']) {
-            return parent::addInvoiceLines($model);
+        if (array_key_exists('hide_lines', $this->getInvoiceLineFields())) {
+            return;
         }
+
+        return parent::addInvoiceLines($model);
     }
 
     /**
